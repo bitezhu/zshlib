@@ -1,3 +1,6 @@
+from utils import ezOpen
+
+
 CDS_TYPE        = 'CDS'
 START_TYPE      = 'start_codon'
 STOP_TYPE       = 'stop_codon'
@@ -32,42 +35,42 @@ CARED_ATTR      = [GENE_ID_ATTR,TRANS_ID_ATTR,GENE_NAME_ATTR,TRANS_NAME_ATTR,GEN
 
 (SEQNAME_INDEX, SOURCE_INDEX, FEATURE_INDEX, START_INDEX, END_INDEX, SCORE_INDEX, STRAND_INDEX, FRAME_INDEX, ATTR_INDEX, COMMENT_INDEX) = range(10)
 
-class GTF_Line(object) :
+class GTF_Line(object):
     """Encapsulates a single line/record in a GTF file."""
-    def __init__(self, rawstring) :
-        ignorepos  = rawstring.find(COMMENT_START)
+    def __init__(self, rawstring):
+        ignorepos = rawstring.find(COMMENT_START)
         s = rawstring[:ignorepos] if ignorepos >= 0 else rawstring.strip()
         self.parts = s.split('\t')
-        if len(self.parts) != ATTR_INDEX+1 :
+        if len(self.parts) != ATTR_INDEX+1:
             raise ValueError('Bad GTF record: had %d columns where %d are required' % (len(self.parts), ATTR_INDEX+1))
         self.attrs = self.setAttr(CARED_ATTR)
-        if not (self.attrs[GENE_NAME_ATTR] and self.attrs[GENE_ID_ATTR]) :
+        if not (self.attrs[GENE_NAME_ATTR] and self.attrs[GENE_ID_ATTR]):
             raise ValueError('Missing gene name and gene id')
-        elif not self.attrs[GENE_NAME_ATTR] :
+        elif not self.attrs[GENE_NAME_ATTR]:
             self.attrs[GENE_NAME_ATTR] = self.attrs[GENE_ID_ATTR]
-        elif not self.attrs[GENE_ID_ATTR] :
+        elif not self.attrs[GENE_ID_ATTR]:
             self.attrs[GENE_ID_ATTR] = self.attrs[GENE_NAME_ATTR]
                         
         self.parts[SEQNAME_INDEX] = self.parts[SEQNAME_INDEX].lower()
         
      
-    def attributes(self) :      return self.attrs
-    def seqname(self) :         return self.parts[SEQNAME_INDEX]
-    def source(self) :          return self.parts[SOURCE_INDEX]
-    def feature(self) :         return self.parts[FEATURE_INDEX]
-    def start(self) :           return int(self.parts[START_INDEX]) - 1 # (convert 1-based gtf to 0-based coordiante system)
-    def end(self) :             return int(self.parts[END_INDEX])
-    def score(self) :           return self.parts[SCORE_INDEX]
-    def strand(self) :          return self.parts[STRAND_INDEX]
-    def strand(self) :          return self.parts[STRAND_INDEX]
-    def frame_index(self) :     return self.parts[FRAME_INDEX]
-    def raw_attributes(self) :  return self.parts[ATTR_INDEX]
+    def attributes(self):      return self.attrs
+    def seqname(self):         return self.parts[SEQNAME_INDEX]
+    def source(self):          return self.parts[SOURCE_INDEX]
+    def feature(self):         return self.parts[FEATURE_INDEX]
+    def start(self):           return int(self.parts[START_INDEX]) - 1 # (convert 1-based gtf to 0-based coordiante system)
+    def end(self):             return int(self.parts[END_INDEX])
+    def score(self):           return self.parts[SCORE_INDEX]
+    def strand(self):          return self.parts[STRAND_INDEX]
+    def strand(self):          return self.parts[STRAND_INDEX]
+    def frame_index(self):     return self.parts[FRAME_INDEX]
+    def raw_attributes(self):  return self.parts[ATTR_INDEX]
     
-    def gene_id(self) :         return self.attrs[GENE_ID_ATTR]
-    def gene_name(self) :       return self.attrs[GENE_NAME_ATTR]
-    def gene_type(self) :       return self.getAttr[GENE_BIO_ATTR]
-    def transcript_id(self) :   return self.getAttr(TRANS_ID_ATTR)
-    def transcript_name(self) : return self.getAttr(TRANS_NAME_ATTR)
+    def gene_id(self):         return self.attrs[GENE_ID_ATTR]
+    def gene_name(self):       return self.attrs[GENE_NAME_ATTR]
+    def gene_type(self):       return self.getAttr[GENE_BIO_ATTR]
+    def transcript_id(self):   return self.getAttr(TRANS_ID_ATTR)
+    def transcript_name(self): return self.getAttr(TRANS_NAME_ATTR)
 
     def getAttr(self, key):
         try:
@@ -91,6 +94,9 @@ class GTF_Line(object) :
         return '%s\t%s\t%s\t%d\t%d\t.\t%s\t.\t%s' % (self.seqname(), self.source(), self.feature(), self.start(), self.end(), self.strand(), attrString)
 
 
+
+
+#####################################################################################################################################################
 
 CHROM            = 0
 CHR_START        = 1
@@ -118,7 +124,7 @@ class BED_Line(object):
         self.header = s.startswith(HEADER_PFX)
         if self.header : return
         for col in ALL_COLUMNS:
-            try :
+            try:
                 self.attrs[col] = parts[col]
             except IndexError, ie:
                 self.attrs[col] = None
@@ -156,3 +162,76 @@ class BED_Line(object):
     def donor(self):
         """Returns the donor site inferred by the record."""
         return self.startpos()+self.us if self.strand() == '+' else self.endpos()- self.us-1
+
+
+
+
+###########################################################################################################################
+class fastaRecord(object):
+    def __init__(self,Id,description,seq):
+        self.id = Id
+        self.description = description
+        self.seq = seq
+
+    def __str__(self):
+        return '>' + self.id + ' '+ self.description + '\n' + self.sequence + '\n'
+
+def _fastaHeader(header):
+    try:
+        Id ,description = header[1:].split(" ",1)
+    except ValueError,e:
+        Id = header[1:]
+        description = None
+    return Id,description
+
+def _fasta_itr_from_file(filehandle):
+    line = filehandle.readline().strip()
+    if line[0] != ">":
+        raise ValueError('invalid fasta file,first line must start with ">"')
+    seq = []
+    Id,description = _fastaHeader(line[1:])
+    linemark = 1
+    for line in filehandle:
+        linemark += 1
+        line = line.rstrip()
+        if len(line) == 0:
+            raise ValueError('there is a blank line %d in fasta file'%linemark)
+        if line[0] == ">":
+            yield fastaRecord(Id,description,''.join(seq))
+            seq = []
+            Id ,description = _fastaHeader(line[1:])
+            continue
+        seq.append(line)
+    yield fastaRecord(Id,description,''.join(seq))
+
+
+def _fasta_itr_from_name(filename):
+    "Provide an iteration through the fasta records in the file named fname. "
+    f = ezOpen(filename)
+    for rec in _fasta_itr_from_file(f):
+        yield rec
+
+def _fasta_itr(src):
+    """
+    Provide an iteration through the fasta records in file `src'.
+    Here `src' can be either a file object or the name of a file.
+    """
+    if type(src) == str:
+        return _fasta_itr_from_name(src)
+    elif type(src) == file :
+        return _fasta_itr_from_file(src)
+    else:
+        raise TypeError
+
+
+class fasta_itr(object):
+    "An iterator through a sequence of fasta records."
+    def __init__(self,src):
+        self.__itr = _fasta_itr(src)
+       
+    def next(self):
+        return self.__itr.next()
+    
+    def __iter__(self):
+        return self
+
