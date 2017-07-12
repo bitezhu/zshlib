@@ -38,4 +38,13 @@ for item in idx.fetch('1',3100,5000):
 arr=[['1',42,52],['11',45,78],['2',25,100],['1',23,78],['1',56,89]]
 
 print utils.sortArr(arr,0,1)
+from format import *
 
+f=sys.argv[1]
+recs = fasta_itr(f)
+print dir(recs)
+print type(recs)
+
+for rec in recs:
+    print rec.id
+    print rec.seq
