@@ -2,7 +2,7 @@
 Module containing general utility methods.
 """
 import ConfigParser, gzip, locale, os, random, subprocess, sys, time
-from glob import glob
+from operator import itemgetter, attrgetter
 
 def asList(value, delim=',') :
     """Generic method for creating a list from a given value.
@@ -132,6 +132,15 @@ def validateFile(path) :
 
     if not os.path.exists(path) :
         raise Exception("File '%s' not found; exiting." % path)
+
+
+def sortArr(arr,*args):
+    sortarr=sorted(arr, key=itemgetter(*args))
+    return sortarr
+
+def revsortArr(arr,*args):
+    sortarr=sorted(arr, key=itemgetter(*args),reverse=True)
+    return sortarr
 
 
 class ProgressIndicator(object) :

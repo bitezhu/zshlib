@@ -16,7 +16,7 @@ def Tabix(tabfile,chrpos=0,start=3,end=4):
 
 def mappingstat(inbam,):
 	bamfile = pysam.AlignmentFile(inbam,'rb')
-	test=pysam.AlignmentFile('xx.bam','wb',template=bamfile)
+#	test=pysam.AlignmentFile('xx.bam','wb',template=bamfile)
 	total_reads = Porper_reads = MAPQ5 = MAPQ20 = unmapped = uniquemapped = multimapped = Discordantmapped = 0
 	for segment in bamfile:
 		if segment.is_supplementary:
@@ -27,7 +27,7 @@ def mappingstat(inbam,):
 			continue
 		if segment.is_secondary:
 			multimapped+=1
-			test.write(segment)
+#			test.write(segment)
 			continue
 		if segment.is_proper_pair:
 			Porper_reads+=1
@@ -43,7 +43,7 @@ def mappingstat(inbam,):
 		else:
 			pass
 	bamfile.close()
-	test.close()
+#	test.close()
 	uniquemapped = total_reads - multimapped 
 	# the multimapped may not exactly the READS NUM in original sequence data,since a read could have more than 2 hits.Yet in this way,a read was counted more than one time when we multimapped+=1, hence the uniquemapped result from the equatation is not exactly right either.But I think this is not a big deal.
 	return total_reads,Porper_reads,MAPQ5,MAPQ20,unmapped,multimapped,Discordantmapped

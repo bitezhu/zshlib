@@ -55,7 +55,7 @@ class GTF_Line(object) :
     def seqname(self) :         return self.parts[SEQNAME_INDEX]
     def source(self) :          return self.parts[SOURCE_INDEX]
     def feature(self) :         return self.parts[FEATURE_INDEX]
-    def start(self) :           return int(self.parts[START_INDEX])
+    def start(self) :           return int(self.parts[START_INDEX]) - 1 # (convert 1-based gtf to 0-based coordiante system)
     def end(self) :             return int(self.parts[END_INDEX])
     def score(self) :           return self.parts[SCORE_INDEX]
     def strand(self) :          return self.parts[STRAND_INDEX]
@@ -90,3 +90,69 @@ class GTF_Line(object) :
         attrString = '; '.join(['%s "%s"'%(k,self.attrs[k]) for k in sorted(self.attrs.keys())])
         return '%s\t%s\t%s\t%d\t%d\t.\t%s\t.\t%s' % (self.seqname(), self.source(), self.feature(), self.start(), self.end(), self.strand(), attrString)
 
+
+
+CHROM            = 0
+CHR_START        = 1
+CHR_END          = 2
+NAME             = 3
+SCORE            = 4
+STRAND           = 5
+THICK_START      = 6
+THICK_END        = 7
+ITEM_RGB_VALS    = 8
+BLOCKCOUNT       = 9
+BLOCKSIZES       = 10
+BLOCKSTARTS      = 11
+
+
+HEADER_PFX       = 'track'
+ALL_COLUMNS      = [CHROM,CHR_START,CHR_END,NAME,SCORE,STRAND,THICK_START,THICK_END,ITEM_RGB_VALS,BLOCKCOUNT,BLOCKSIZES,BLOCKSTARTS]
+
+
+class BED_Line(object):
+    """Encapsulates a single line/record in a bed12 file."""
+    def __init__(self, rawstring):
+        parts       = s.strip().split('\t')
+        self.attrs  = {}
+        self.header = s.startswith(HEADER_PFX)
+        if self.header : return
+        for col in ALL_COLUMNS:
+            try :
+                self.attrs[col] = parts[col]
+            except IndexError, ie:
+                self.attrs[col] = None
+        sizes = [int(x) for x in self.attrs[SIZES].split(',')]
+        if self.strand() == '+':
+            self.us,self.ds = sizes
+        else:
+            self.ds,self.us = sizes
+
+
+    def chromosome(self):
+        """Returns the chromosome given by the record."""
+        return self.attrs[CHROM].lower()
+    
+    def startpos(self):
+        """Convenience method that returns the first position for the record."""
+        return int(self.attrs[CHR_START])
+
+    def endpos(self):
+        """Convenience method that returns the last position for the record."""
+        return int(self.attrs[CHR_END])
+    
+    def featurename(self):
+        """Returns the name given by the record."""
+        return self.attrs[NAME]
+
+    def strand(self):
+        """Returns the strand given by the record."""
+        return self.attrs[STRAND]
+
+    def acceptor(self):
+        """Returns the acceptor site inferred by the record."""
+        return self.endpos()-self.ds-1 if self.strand() == '+' else self.startpos()+self.ds
+
+    def donor(self):
+        """Returns the donor site inferred by the record."""
+        return self.startpos()+self.us if self.strand() == '+' else self.endpos()- self.us-1
