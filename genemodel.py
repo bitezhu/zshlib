@@ -1,3 +1,6 @@
+import utils
+
+
 CDS_TYPE          = 'CDS'
 EXON_TYPE         = 'exon'
 UTR_TYPE          i= 'UTR'
@@ -101,26 +104,43 @@ class transcript(BaseFeature):
         self.cdsMap      = {}
         self.start_codon = None
         self.stop_codon  = None
+        self.utr         = []
         self.fp_utr      = []
         self.tp_utr      = []
         self.utrMap      = {}
+        self.exonMap     = {}
+        self.introns     = []
+
+    def addexon(self,exon):
+        if exon.starnd != slef.strand:
+            raise Exception("ERROR: strand '%s' of exon from transcript %s does not match gene strand '%s'" % (exon.strand, exon.parent, self.strand))
+        if exon.chromosome != self.chromosome:
+            raise Exception("ERROR: chromosome '%s' of exon from transcript %s does not match gene chromosome '%s'" % (exon.chromosome, exon.parent, self.chromosome))
+        exonTuple = (exon.start,exon.end)
+        try :
+            ignore = self.exonMap[exonTuple]
+            return False
+        except KeyError,e:
+            self.cdsMap[cdsTuple] = cds
+        self.exons.append(list(exonTuple))
+        return True
 
     def addCDS(self, cds):
-        if cds.strand != self.strand :
+        if cds.strand != self.strand:
             raise Exception("ERROR: strand '%s' of CDS from transcript %s does not match gene strand '%s'" % (cds.strand, cds.parent, self.strand))
-        if cds.chromosome != self.chromosome :
+        if cds.chromosome != self.chromosome:
             raise Exception("ERROR: chromosome '%s' of CDS from transcript %s does not match gene chromosome '%s'" % (cds.chromosome, cds.parent, self.chromosome))
         cdsTuple = (cds.start,cds.end)
         try :
             ignore = self.cdsMap[cdsTuple]
             return False
-        except KeyError :
+        except KeyError,e:
             self.cdsMap[cdsTuple] = cds
         self.cds.append(list(cdsTuple))
         return True
     
     def addUTR(self,utr):
-        if utr.strand != self.strand :
+        if utr.strand != self.strand:
             raise Exception("ERROR: strand '%s' of UTR from transcript %s does not match gene strand '%s'" % (cds.strand, cds.parent, self.strand))
         if utr.chromosome != self.chromosome :
             raise Exception("ERROR: chromosome '%s' of UTR from transcript %s does not match gene chromosome '%s'" % (cds.chromosome, cds.parent, self.chromosome))
@@ -128,12 +148,9 @@ class transcript(BaseFeature):
         try :
             ignore = self.utrMap[utrTuple]
             return False
-        except KeyError :
+        except KeyError,e:
             self.utrMap[utrTuple] = utr
-        if self.strand == "+":
-            self.fp_utr.append(list(utrTuple))
-        else:
-            self.tp_utr.append(list(utrTuple))
+        self.utr.append([list(utrTuple)])
         return True
 
     def addCodon(self,codon):
@@ -141,22 +158,91 @@ class transcript(BaseFeature):
             self.start_codon = [codon.start,codon.end]
         else:
             self.stop_codon = [codon.start,codon.end]
+        return True
 
-    def findCodons(self) :
-        """
-        Infers a transcript's start and end codon positions based on
-        the relative positions of UTR and CDS records.
-        """
-        if self.end_codon and self.start_codon : return
-        if not self.cds : return
-        self.cds.sort(reverse=(self.strand=='-'))
-        prev = self.cds[0]
-        for c in self.cds[1:] :
-                    530             if not self.start_codon and prev.featureType == FP_UTR_TYPE and c.featureType == CDS_TYPE :
-                         531                 self.start_codon = (c.minpos,c.minpos+2) if self.strand == '+' else (c.maxpos-2,c.maxpos)
-                          532             elif not self.end_codon and prev.featureType == CDS_TYPE and c.featureType == TP_UTR_TYPE :
-                               533                 self.end_codon = (prev.maxpos-2,prev.maxpos) if self.strand == '+' else (prev.minpos,prev.minpos+2)
-                                534             prev = c
+    def inferUTRort(self):
+        '''
+        Infers a UTR record based on strand and coordinates compare between UTR and cds
+        '''
+        if not self.utr: return
+        self.cds = sortArr(self.cds,0)
+        firstcdsStart, firstcdsEnd = self.cds[0]
+        for utrs,utre in self.utr:
+            if self.strand == "+":
+                if utrs < firstcdsStart:
+                    self.fp_utr.append([utrs,utre])
+                else:
+                    self.tp_utr.append([utrs,utre])
+            else:
+                if utrs < firstcdsStart:
+                    self.tp_utr.append([utrs,utre])
+                else:
+                    self.fp_utr.append([utrs,utre])
+        return True
 
+    def inferUTR(self):
+        '''
+        This method would try to infer FP_UTR and TP_UTR
+        even without UTR annotation for a transcript. Exons and CDSs are suffcient.
+        '''
+        if self.fp_utr and self.tp_utr: return
+        if not self.cds: return
+        self.cds = sortArr(self.cds,0)
+        self.exons = sortArr(self.exons,0)
+        CDSstart,CDSend = (self.cds[0][0],self.cds[-1][-1]) if self.strand == "+" else (self.cds[-1][-1],self.cds[0][0]) 
+        for tmps,tmpe in self.exons:
+            if self.strand == "+":
+                if tmpe < CDSstart:
+                    self.fp_utr.append([tmps,tmpe])
+                elif tmps < CDSstart < tmpe:
+                    self.fp_utr.append([tmps,CDSstart-1])
+                elif tmps > CDSend:
+                    self.tp_utr.append([tmps,tmpe])
+                elif tmps < CDSend < tmpe:
+                    self.tp_utr.append([CDSend+1,tmpe])
+                else:
+                    raise Exception("ERROR: could not determine this exon [%d,%d] is a UTR or not" % (tmps,tmpe,))
+            else:
+                if tmps > CDSstart:
+                    self.fp_utr.append([tmps,tmpe])
+                elif tmps < CDSstart < tmpe:
+                    self.fp_utr.append([CDSstart+1,tmpe])
+                elif tmpe < CDSend:
+                    self.tp_utr.append([tmps,tmpe])
+                elif tmps < CDSend < tmpe:
+                    self.tp_utr.append([tmps,CDSend-1])
+        return True
 
+    def inferCodons(self):
+        '''
+        This method would try to infer start codon and end codon 
+        even without UTR annotation for a transcript.Exons and CDSs are suffcient.
+        '''
+        if self.end_codon and self.start_codon: return
+        if not self.cds: return
+        if self.strand == "+":
+            self.start_codon = [self.cds[0][0],self.cds[0][0]+2]
+            self.end_codon = [self.cds[-1][-1]+1,self.cds[-1][-1]+3]
+        else:
+            self.start_codon = [self.cds[-1][-1]-2,self.cds[-1][-1]]
+            self.end_codon = [self.cds[0][0]-3,self.cds[0][0]-1]
+        return True
+'''
+    def inferIntrons(self):
+        result = {}
+         768         for iid in self.isoforms.keys() :
+              769             exons = self.isoforms[iid].sortedExons()
+               770             for i in xrange(1,len(exons)) :
+                    771                 key = (exons[i-1].end(), exons[i].start())
+                     772                 result[key] = 1
+                      773 
+                       774         for mid in self.mrna.keys() :
+                            775             cds = self.mrna[mid].sortedExons()
+                             776             for i in xrange(1,len(cds)) :
+                                  777                 key = (cds[i-1].end(), cds[i].start())
+                                   778                 result[key] = 1
+                                    779 
+                                     780         return result.keys()
+'''
+#def Gene(BaseFeature):
 
