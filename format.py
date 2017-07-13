@@ -68,7 +68,7 @@ class GTF_Line(object):
     
     def gene_id(self):         return self.attrs[GENE_ID_ATTR]
     def gene_name(self):       return self.attrs[GENE_NAME_ATTR]
-    def gene_type(self):       return self.getAttr[GENE_BIO_ATTR]
+    def gene_type(self):       return self.getAttr(GENE_BIO_ATTR)
     def transcript_id(self):   return self.getAttr(TRANS_ID_ATTR)
     def transcript_name(self): return self.getAttr(TRANS_NAME_ATTR)
 

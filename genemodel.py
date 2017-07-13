@@ -1,16 +1,16 @@
-import utils
+from  utils import sortArr
 
 
 CDS_TYPE          = 'CDS'
 EXON_TYPE         = 'exon'
-UTR_TYPE          i= 'UTR'
+UTR_TYPE          = 'UTR'
 GENE_TYPE         = 'gene'
 MRNA_TYPE         = 'mrna'
 TRANSCIRPT_TYPE   = 'transcript'
 START_CODON_TYPE  = 'start_codon'
 STOP_CODON_TYPE   = 'stop_codon'
 
-CDS_TYPES       = [FP_UTR_TYPE, TP_UTR_TYPE, CDS_TYPE]
+CDS_TYPES       = [UTR_TYPE, CDS_TYPE]
 
 class BaseFeature(object):
     def __init__(self, chromosome, start, end, strand, featureType, attr={}) :
@@ -24,13 +24,13 @@ class BaseFeature(object):
         self.attrs  = attr
 
     def acceptor(self):
-    """
-    Returns the location where the acceptor dimer begins: 2nt
-    upstream of the exon start position.  This is 2 before the
-    start on the + strand and the exact start on the - strand.
-    + Example: AG|CGTATTC
-    - Example: GAATACG|CT (reverse-complement)
-    """
+        """
+        Returns the location where the acceptor dimer begins: 2nt
+        upstream of the exon start position.  This is 2 before the
+        start on the + strand and the exact start on the - strand.
+        + Example: AG|CGTATTC
+        - Example: GAATACG|CT (reverse-complement)
+        """
         return [self.start-2,self.start] if self.strand == '+' else [self.end,self.end+2]
 
     def donor(self):
@@ -79,9 +79,9 @@ class StartCodon(Exon):
     def _addParent(self, transcriptid):
         self.parent = transcriptid
 
-class EndCodon(Exon):
+class StopCodon(Exon):
     def __init__(self, chromosome, start, end, strand, transcriptid, attr={}):
-        BaseFeature.__init__(self, chromosome, start, end, strand, END_CODON_TYPE, attr)
+        BaseFeature.__init__(self, chromosome, start, end, strand, STOP_CODON_TYPE, attr)
         self.parent = ''
         self.SC = 0
         self.EC = 1   
@@ -89,17 +89,22 @@ class EndCodon(Exon):
         self.parent = transcriptid
 
 
+def rmExtra(arr):
+    unique_arr = []
+    [unique_arr.append(obj) for obj in arr if obj not in unique_arr]
+    return unique_arr
 
 class transcript(BaseFeature):
     """
     An mRNA acts like an isoform in that it is associated with a parent gene
     and contains a number of coding sequences (CDS).
     """
-    def __init__(self, chromosome, start, end, strand, featureType, id, attr={}):
-        BaseFeature.__init__(self, chromosome, start, end, strand, attr)
+    def __init__(self, chromosome, start, end, strand, feature, id, attr={}):
+        BaseFeature.__init__(self, chromosome, start, end, strand, feature, attr)
         self.id          = id
         self.exons       = []
-        self.features    = []
+        self.biotype     = attr['biotype']
+        self.feature     = feature
         self.cds         = []
         self.cdsMap      = {}
         self.start_codon = None
@@ -112,7 +117,7 @@ class transcript(BaseFeature):
         self.introns     = []
 
     def addexon(self,exon):
-        if exon.starnd != slef.strand:
+        if exon.strand != self.strand:
             raise Exception("ERROR: strand '%s' of exon from transcript %s does not match gene strand '%s'" % (exon.strand, exon.parent, self.strand))
         if exon.chromosome != self.chromosome:
             raise Exception("ERROR: chromosome '%s' of exon from transcript %s does not match gene chromosome '%s'" % (exon.chromosome, exon.parent, self.chromosome))
@@ -121,7 +126,7 @@ class transcript(BaseFeature):
             ignore = self.exonMap[exonTuple]
             return False
         except KeyError,e:
-            self.cdsMap[cdsTuple] = cds
+            self.exonMap[exonTuple] = exon
         self.exons.append(list(exonTuple))
         return True
 
@@ -150,7 +155,7 @@ class transcript(BaseFeature):
             return False
         except KeyError,e:
             self.utrMap[utrTuple] = utr
-        self.utr.append([list(utrTuple)])
+        self.utr.append(list(utrTuple))
         return True
 
     def addCodon(self,codon):
@@ -180,6 +185,7 @@ class transcript(BaseFeature):
                     self.fp_utr.append([utrs,utre])
         return True
 
+    
     def inferUTR(self):
         '''
         This method would try to infer FP_UTR and TP_UTR
@@ -195,54 +201,42 @@ class transcript(BaseFeature):
                 if tmpe < CDSstart:
                     self.fp_utr.append([tmps,tmpe])
                 elif tmps < CDSstart < tmpe:
-                    self.fp_utr.append([tmps,CDSstart-1])
+                    self.fp_utr.append([tmps,CDSstart])
                 elif tmps > CDSend:
                     self.tp_utr.append([tmps,tmpe])
                 elif tmps < CDSend < tmpe:
-                    self.tp_utr.append([CDSend+1,tmpe])
+                    self.tp_utr.append([CDSend,tmpe])
                 else:
                     raise Exception("ERROR: could not determine this exon [%d,%d] is a UTR or not" % (tmps,tmpe,))
             else:
                 if tmps > CDSstart:
                     self.fp_utr.append([tmps,tmpe])
                 elif tmps < CDSstart < tmpe:
-                    self.fp_utr.append([CDSstart+1,tmpe])
+                    self.fp_utr.append([CDSstart,tmpe])
                 elif tmpe < CDSend:
                     self.tp_utr.append([tmps,tmpe])
                 elif tmps < CDSend < tmpe:
-                    self.tp_utr.append([tmps,CDSend-1])
+                    self.tp_utr.append([tmps,CDSend])
+        self.fp_utr = rmExtra(self.fp_utr)
+        self.tp_utr = rmExtra(self.tp_utr)
         return True
+    
 
     def inferCodons(self):
         '''
         This method would try to infer start codon and end codon 
         even without UTR annotation for a transcript.Exons and CDSs are suffcient.
         '''
-        if self.end_codon and self.start_codon: return
+        if self.stop_codon and self.start_codon: return
         if not self.cds: return
         if self.strand == "+":
-            self.start_codon = [self.cds[0][0],self.cds[0][0]+2]
-            self.end_codon = [self.cds[-1][-1]+1,self.cds[-1][-1]+3]
+            self.start_codon = [self.cds[0][0],self.cds[0][0]+3]
+            self.stop_codon = [self.cds[-1][-1],self.cds[-1][-1]+3]
         else:
-            self.start_codon = [self.cds[-1][-1]-2,self.cds[-1][-1]]
-            self.end_codon = [self.cds[0][0]-3,self.cds[0][0]-1]
+            self.start_codon = [self.cds[-1][-1]-3,self.cds[-1][-1]]
+            self.stop_codon = [self.cds[0][0]-3,self.cds[0][0]]
         return True
-'''
-    def inferIntrons(self):
-        result = {}
-         768         for iid in self.isoforms.keys() :
-              769             exons = self.isoforms[iid].sortedExons()
-               770             for i in xrange(1,len(exons)) :
-                    771                 key = (exons[i-1].end(), exons[i].start())
-                     772                 result[key] = 1
-                      773 
-                       774         for mid in self.mrna.keys() :
-                            775             cds = self.mrna[mid].sortedExons()
-                             776             for i in xrange(1,len(cds)) :
-                                  777                 key = (cds[i-1].end(), cds[i].start())
-                                   778                 result[key] = 1
-                                    779 
-                                     780         return result.keys()
-'''
+    
+
 #def Gene(BaseFeature):
 
