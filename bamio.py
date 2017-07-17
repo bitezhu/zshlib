@@ -3,7 +3,7 @@ import sys
 import os
 
 def Tabix(tabfile,chrpos=0,start=3,end=4):
-    if os.path.exists(tabfile+".tbi"):
+    if os.path.exists(tabfile+".gz.tbi"):
         tabix = pysam.TabixFile(tabfile)
     else:
         try:
