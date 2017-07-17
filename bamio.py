@@ -4,11 +4,11 @@ import os
 
 def Tabix(tabfile,chrpos=0,start=3,end=4):
     if os.path.exists(tabfile+".gz.tbi"):
-        tabix = pysam.TabixFile(tabfile)
+        tabix = pysam.TabixFile(tabfile+".gz")
     else:
         try:
             pysam.tabix_index(tabfile,force=True, seq_col=chrpos, start_col=start, end_col=end,)    
-            tabix = pysam.TabixFile(tabfile)
+            tabix = pysam.TabixFile(tabfile+'.gz')
         except IOError,e:
             sys.stderr.write("Failed build index,please sort the file based on contig and position first\n")
             sys.exit(1)
