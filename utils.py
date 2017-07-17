@@ -61,6 +61,17 @@ def ezOpen(fileName) :
     except :
         return open(fileName)
 
+def file2Dict(f,keyindex=0):
+    result = {}
+    fh=ezOpen(f)
+    for line in fh:
+        if line.startswith("#"):
+            continue
+        arr=line.rstrip().split("\t")
+        result[arr[keyindex]]=line
+    fh.close()
+    return result
+
 
 def filePrefix(f) :
     """Returns the filename prefix for a file.  For example:
