@@ -11,6 +11,7 @@ def Tabix(tabfile,chrpos=0,start=3,end=4):
             tabix = pysam.TabixFile(tabfile+".gz")
         except IOError,e:
             sys.stderr.write("Failed build index,please sort the file based on contig and position first\n")
+            sys.exit(1)
     return tabix
 
 

@@ -39,11 +39,22 @@ class BaseFeature(object):
     def contains(self, chromosome, pos, strand):
         return (strand == self.strand and chromosome == self.chromosome and self.start <= pos <= self.end)
 
-    def updateAttr(self, altAttributes={}) :
+    def updateAttr(self, altAttributes={}):
         attrs = dict(self.attrs)
         attrs.update(altAttributes)
         self.attrs = attrs
+    
+    def setAttr(self,Attributes={}):
+        attrs = dict(self.attrs)
+        for item in Attributes:
+            attrs[item] = Attributes[item]
+        self.attrs = attrs
 
+    def setParent(self, id):
+        self.parent = id
+
+    def __len__(self):
+        return self.start-self.end
 
 class Exon(BaseFeature):
     def __init__(self, chromosome, start, end, strand, transcriptid, attr={}):
@@ -237,6 +248,44 @@ class transcript(BaseFeature):
             self.stop_codon = [self.cds[0][0]-3,self.cds[0][0]]
         return True
     
+    def translateRegion(self):
+        Start = End = 0
+        if self.cds:
+            Start = self.cds[0][0]
+            End   = self.cds[-1][-1]
+        elif self.exons:
+            Start = self.exons[0][0]
+            End   = self.exons[-1][-1]
+        else:
+            return
+        self.translateRegion = [Start,End]
+        return True
 
-#def Gene(BaseFeature):
+    def __str__(self):
+        return "%s :%s:%d-%d (len=%d, strand=%s), %d exons/cds, translate from %d to %d" % (self.id, self.chromosome, self.start, self.end, self.end-self.start, self.strand, len(self.cds), self.translateRegion[0],self.translateRegion[1])
 
+
+class Gene(BaseFeature):
+    def __init__(self, chromosome, start, end, strand, id, name=None,attr={}):
+        BaseFeature.__init__(self, chromosome, start, end, strand, GENE_TYPE , attr)
+        self.id          = id
+        self.name        = name if name is not None else id
+        self.exons       = []
+        self.biotype     = attr['biotype']
+        self.trancripts  = {}
+        self.exons       = []
+        self.cds         = []
+        self.exonMap     = {}
+        self.cdsMap      = {}
+        self.string      = ''
+
+        self.start_codons = {}
+        self.end_codons   = {}
+        
+        # All other features associated with genes in an annotation file, such as:
+        #    3'/5' UTRs, mRNA, miRNA, siRNA, tRNA, rRNA, ncRNA, snRNA, snoRNA
+        self.features = []
+    
+    def addisoform(self,Newtranscript):
+        Newtranscript.setParent(self.id)
+        return self.trancripts.setdefault(Newtranscript.id, Newtranscript)
