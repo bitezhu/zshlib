@@ -260,6 +260,39 @@ class transcript(BaseFeature):
             return
         self.translateRegion = [Start,End]
         return True
+    
+    def inferIntron(self):
+        '''Returns a list of duples containing start/end positions of introns in this transcript.'''
+        self.introns = []
+        if self.exons:
+            intervals = self.exons
+        elif self.cds:
+            intervals = self.cds
+        else:
+            return
+        for i in xrange(1,len(intervals)) :
+            intron = [exons[i-1].end(), exons[i].start()]
+            self.introns.append(intron)
+       self.introns = sortArr(self.introns,0) 
+       return True
+
+    def upstream(self,distance=1000):
+        '''Returns the upstream and downstream flanking region of a transcript record.'''
+        uppos   = min(self.cds[0][0],self.exons[0][0])
+        downpos = max(self.cds[-1][-1],self.exons[-1][-1])
+        if self.strand == '+':
+            return [uppos+distance,uppos]
+        else:
+            return [downpos,downpos+distance]
+
+    def downstream(self,distance=1000):
+        uppos   = min(self.cds[0][0],self.exons[0][0])
+        downpos = max(self.cds[-1][-1],self.exons[-1][-1])
+        if self.strand == '+':
+            return [downpos,downpos+distance]
+        else:
+            return [uppos+distance,uppos]
+
 
     def __str__(self):
         return "%s :%s:%d-%d (len=%d, strand=%s), %d exons/cds, translate from %d to %d" % (self.id, self.chromosome, self.start, self.end, self.end-self.start, self.strand, len(self.cds), self.translateRegion[0],self.translateRegion[1])
