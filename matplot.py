@@ -10,7 +10,7 @@ from itertools import *
 
 
 #myfavcolors = ['grey','tomato','blue','green','gold','black','deepskyblue','olive','steelblue','brown','plum','chocolate','cyan','crimson','aqua']
-myfavcolors=['grey','tomato','peru','dodgerblue','brown','darkslategray','lightsalmon','limegreen','deeppink','mediumpurple','darkkhaki','aqua','coral','goldennod','cornflowerblue','crimson']
+myfavcolors=['grey','tomato','peru','dodgerblue','brown','darkslategray','lightsalmon','limegreen','deeppink','mediumpurple','darkkhaki','aqua','coral','gold','cornflowerblue','crimson']
 Markers = Line2D.markers
 Fillmarkers = Line2D.filled_markers
 myfavmarkers = [Markers['+'],Markers[2],Markers['x'],Markers[5],Markers['.'],Fillmarkers[0],Fillmarkers[2],Fillmarkers[-1],Fillmarkers[-6],Fillmarkers[-5],Markers['D']]
@@ -40,24 +40,24 @@ def autolabel(rects,horizontal=0):
             ax.text(rect.get_width()*1.02,rect.get_y()+height/2., '%d' % int(height),ha='center', va='center')
 
 
-def barplot(plotarr,arrlabel,xlabel="x",ylabel="y",title="barplot",picname="test",color='gray',log=0,horizontal=0):
+def barplot(plotarr,arrlabel,xlabel="x",ylabel="y",title="barplot",picname="test",color='gray',log=0,horizontal=0,rotation=0,):
     fig = plt.figure()
     ax = fig.add_subplot(111)
     y_pos = np.arange(len(plotarr))
     if not horizontal:
+        if log:ax.set_yscale('log')
         rects=ax.bar(y_pos,plotarr,align='center',color=color,log=log)
         ax.set_xticks(y_pos)
-        ax.set_xticklabels(arrlabel)
+        ax.set_xticklabels(arrlabel,rotation=rotation)
         autolabel(rects,horizontal)
         ax.set_ylim(top=ax.axis()[-1]*1.1)
     else:
+        if log:ax.set_xscale('log')
         rects=ax.barh(y_pos, plotarr, align='center',color=color,log=log,)
         ax.set_yticks(y_pos)
-        ax.set_yticklabels(arrlabel)
+        ax.set_yticklabels(arrlabel,rotation=rotation)
         autolabel(rects,horizontal)
         ax.set_xlim(right=ax.axis()[1]*1.1)
-        #ax.invert_yaxis()  # labels read top-to-bottom
-    #ax.axis('scale')
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
@@ -66,6 +66,32 @@ def barplot(plotarr,arrlabel,xlabel="x",ylabel="y",title="barplot",picname="test
     plt.clf()
     plt.close()
 
+
+def bargroup(matrix,samplenames,ticklabels,xlabel="x",ylabel="y",title="bargroupplot",picname="test",colors=['gray','red','yellow'],width = 0.35,log=0,horizontal=0):
+    mat = np.asarray(matrix)
+    r,c = mat.shape
+    print r,c
+    try:
+        assert c == len(samplenames)
+    except AssertionError,e:
+        sys.stderr.write("wrong data dimension!!!\n")
+    if len(colors) != c:
+        colors,marker = styleNum(c)
+    fig, ax = plt.subplots()
+    ind = np.arange(r)
+    for i in range(c):
+        rects=ax.bar(ind+(i+1)*width, mat[:,i], width, color=colors[i],label=samplenames[i])
+        autolabel(rects,horizontal)
+    ax.set_xticks(ind + width*(r+1)/2)
+    ax.set_xticklabels(ticklabels,rotation=rotation)
+    ax.set_ylim(top=ax.axis()[-1]*1.1)
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    plt.savefig("%s.png"%picname,format='png',dpi=300)
+    plt.savefig("%s.svg"%picname,format='svg',dpi=300)
+    plt.clf()
+    plt.close()
 
 def clearaxis(ax):
     ''' remove xaxis and yaxis of the ax '''
@@ -83,14 +109,14 @@ def boxplot(matrix,labels,xlabel="x",ylabel='y',title='boxplot',picname="test",r
         sys.stderr.write("wrong data dimension!!!\n")
     fig, ax = plt.subplots()
     #mat=np.asarray(matrix).T
-    boxes=ax.boxplot(mat,notch=notch,patch_artist=True)
+    boxes=ax.boxplot(mat,notch=notch,patch_artist=patch_artist)
     colors,marker = styleNum(len(labels))
     for patch, color in zip(boxes['boxes'], colors):
         patch.set_facecolor(color)
     ax.set_xticks([i+1 for i in range(len(labels))],)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
-    ax.set_xticklabels(labels,rotation)
+    ax.set_xticklabels(labels,rotation=rotation)
     ax.set_title(title)
     plt.tight_layout()
     plt.savefig("%s.png"%picname,format='png',dpi=300)
@@ -123,7 +149,3 @@ def densityplot(plotarrs,labels,xlabel="x",ylabel='y',title='density',picname="t
     plt.clf()
     plt.close()
 
-#def histplot(plotarr,nbins=10):
- #   ax.hist(plotarr,bins=nbins,)
-
-#def groupbarplot()

@@ -2,12 +2,21 @@ import matplot
 import numpy as np
 import sys
 import utils
+from utils import MatrixAnno
 
+fh=file(sys.argv[1],'r')
+dataobj=MatrixAnno(fh)
+dataobj.getdata()
+print dataobj.samplenames
 
+fh.close()
+
+matplot.boxplot(dataobj.data,dataobj.samplenames,rotation=90)
 #print utils.configMap(sys.argv[1])
-
+'''
 print utils.commaFormat(123456789)
-#matplot.boxplot([[3,5,2,6],[4,5,6,7],[6,7,8,9]],['a','b','c'],)
+#matplot.barplot([[4,5,7,6],[4,5,6,7],[6,7,8,9]],['a','b','c',],log=1)
+matplot.bargroup([[4,5,3,],[1,2,3],[1,2,3],[2,5,4]],['s1','s2','s3'],['g1','g2','g3','g4'],width=0.1)
 a1=np.random.random(10)*10
 a2=np.random.random(10)*10
 a3=np.random.random(10)*10
@@ -16,12 +25,14 @@ a5=np.random.random(10)*10
 a6=np.random.random(10)*10
 a7=np.random.random(10)*10
 a8=np.random.random(10)*10
+'''
 
 #for a,b in matplot.styleNum(10):
 a,b=matplot.styleNum(10)
 #print a 
 #print b
 
+sys.exit(0)
 import bamio
 
 '''

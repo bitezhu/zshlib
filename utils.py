@@ -3,6 +3,8 @@ Module containing general utility methods.
 """
 import ConfigParser, gzip, locale, os, random, subprocess, sys, time
 from operator import itemgetter, attrgetter
+import numpy as np
+
 
 def asList(value, delim=',') :
     """Generic method for creating a list from a given value.
@@ -191,4 +193,42 @@ class ProgressIndicator(object) :
         elif self.ctr % self.dotlim == 0 :
             self.started = True
             sys.stderr.write('.')
+
+class MatrixAnno(object):
+    def __init__(self,matrixfile,log=1,description=''):
+        self.filehandle  = matrixfile
+        self.metainfo    = ''
+        self.tablename   = description
+        self.samplenames = []
+        self.data        = []
+        self.features    = []
+        self.log         = log
+
+    def getdata(self):
+        for line in self.filehandle:
+            if line.startswith("###"):
+                self.metainfo = line.strip("\n").strip("#")
+                continue
+            elif line.startswith('##'):
+                self.tablename = line.strip("\n").strip("#")
+                continue
+            elif line.startswith('#'):
+                self.headerline = line.strip("\n").strip("#")
+                self.samplenames = line.strip("\n").strip("#").split("\t")[2:]
+                continue
+            else:
+                pass
+            linecontent = line.strip().split("\t")
+            self.features.append(linecontent[0])
+            data=map(float,linecontent[2:])
+            self.data.append(data)
+        self.data = np.asarray(self.data)
+        if self.log:
+            self.data += 1
+            self.data = np.log2(self.data)
+        r,c=self.data.shape
+        try:
+            assert c == len(self.samplenames)
+        except AssertionError,e:
+            sys.stderr.write("incompatiable fileds number of headerline and datalines!!!\n")
 
