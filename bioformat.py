@@ -1,6 +1,9 @@
 from utils import ezOpen
 
 
+
+################################################################################################################################
+
 CDS_TYPE        = 'CDS'
 START_TYPE      = 'start_codon'
 STOP_TYPE       = 'stop_codon'
@@ -62,8 +65,8 @@ class GTF_Line(object):
     def end(self):             return int(self.parts[END_INDEX])
     def score(self):           return self.parts[SCORE_INDEX]
     def strand(self):          return self.parts[STRAND_INDEX]
-    def strand(self):          return self.parts[STRAND_INDEX]
     def frame_index(self):     return self.parts[FRAME_INDEX]
+    #If the feature is a coding exon, frame should be a number between 0-2 that represents the reading frame of the first base. If the feature is not a coding exon, the value should be ".".
     def raw_attributes(self):  return self.parts[ATTR_INDEX]
     
     def gene_id(self):         return self.attrs[GENE_ID_ATTR]
@@ -97,6 +100,15 @@ class GTF_Line(object):
 
 
 #####################################################################################################################################################
+# BED format  (0-based)
+#track name=pairedReads description="Clone Paired Reads" useScore=1
+#chr22 1000 5000 cloneA 960 + 1000 5000 0 2 567,488, 0,3512
+#chr22 2000 6000 cloneB 900 - 2000 6000 0 2 433,399, 0,3601
+#If the track line useScore attribute is set to 1 for this annotation data set, the score value will determine the level of gray in which this feature is displayed (higher numbers = darker gray).
+#An RGB value of the form R,G,B (e.g. 255,0,0). If the track line itemRgb attribute is set to "On", this RBG value will determine the display color of the data contained in this BED line.
+#blockSizes - A comma-separated list of the block sizes. The number of items in this list should correspond to blockCount.
+#blockStarts - A comma-separated list of block starts. All of the blockStart positions should be calculated relative to chromStart. The number of items in this list should correspond to blockCount.
+
 
 CHROM            = 0
 CHR_START        = 1
@@ -112,27 +124,27 @@ BLOCKSIZES       = 10
 BLOCKSTARTS      = 11
 
 
-HEADER_PFX       = 'track'
+HEADER_PFXT      = 'track'
+HEADER_PFXB      = 'browser'
 ALL_COLUMNS      = [CHROM,CHR_START,CHR_END,NAME,SCORE,STRAND,THICK_START,THICK_END,ITEM_RGB_VALS,BLOCKCOUNT,BLOCKSIZES,BLOCKSTARTS]
-
+REQUIRED_COLUMNS = [CHROM, CHR_START, CHR_END]
 
 class BED_Line(object):
     """Encapsulates a single line/record in a bed12 file."""
     def __init__(self, rawstring):
-        parts       = s.strip().split('\t')
+        parts       = rawstring.strip().split('\t')
         self.attrs  = {}
-        self.header = s.startswith(HEADER_PFX)
+        self.header = rawstring.startswith(HEADER_PFXT)
+        if not self.header:
+            self.header = rawstring.startswith(HEADER_PFXB)
         if self.header : return
         for col in ALL_COLUMNS:
             try:
                 self.attrs[col] = parts[col]
             except IndexError, ie:
+                if col in REQUIRED_COLUMNS:
+                    raise ie
                 self.attrs[col] = None
-        sizes = [int(x) for x in self.attrs[SIZES].split(',')]
-        if self.strand() == '+':
-            self.us,self.ds = sizes
-        else:
-            self.ds,self.us = sizes
 
 
     def chromosome(self):
@@ -155,14 +167,13 @@ class BED_Line(object):
         """Returns the strand given by the record."""
         return self.attrs[STRAND]
 
-    def acceptor(self):
-        """Returns the acceptor site inferred by the record."""
-        return self.endpos()-self.ds-1 if self.strand() == '+' else self.startpos()+self.ds
-
-    def donor(self):
-        """Returns the donor site inferred by the record."""
-        return self.startpos()+self.us if self.strand() == '+' else self.endpos()- self.us-1
-
+    def blockspos(self):
+        sizes  = [int(x) for x in self.attrs[BLOCKSIZES].strip(',').split(',')]
+        starts = [int(x) for x in self.attrs[BLOCKSTARTS].strip(',').split(',')]
+        self.blocks = []
+        for i,start in enumerate(starts):
+            self.blocks.append([start+self.startpos(),start+sizes[i]+self.startpos()])
+        return self.blocks
 
 
 
@@ -234,4 +245,66 @@ class fasta_itr(object):
     
     def __iter__(self):
         return self
+
+
+
+######################################################################################################################################
+#GFF format (1-based)
+#
+######################################################################################################################################
+#table genePredExt (0-based)
+'''
+"A gene prediction with some additional info."
+(
+string name;            "Name of gene (usually transcript_id from GTF)"
+string chrom;           "Chromosome name"
+char[1] strand;         "+ or - for strand"
+uint txStart;           "Transcription start position"
+uint txEnd;             "Transcription end position"
+uint cdsStart;          "Coding region start"
+uint cdsEnd;            "Coding region end"
+uint exonCount;         "Number of exons"
+uint[exonCount] exonStarts; "Exon start positions"
+uint[exonCount] exonEnds;   "Exon end positions"
+int score;              "Score"
+string name2;           "Alternate name (e.g. gene_id from GTF)"
+string cdsStartStat;    "enum('none','unk','incmpl','cmpl')"
+string cdsEndStat;      "enum('none','unk','incmpl','cmpl')"
+lstring exonFrames;     "Exon frame offsets {0,1,2}"
+)
+'''
+(entrzID_INDEX,txName_INDEX,chromosome_INDEX,strand_INDEX,txStart_INDEX,txEnd_INDEX,CDSStart_INDEX,CDSEnd_INDEX,txExonCount_INDEX,txExonsStart_INDEX,txExonsEnd_INDEX,Score_INDEX,GeneName_INDEX,CDSStartStat_INDEX,CDSEndStat_INDEX,exonFrame_INDEX) = range(16)
+
+COMMENT_START='#'
+
+class genePredExt(object):
+    def __init__(self,line):
+    """Encapsulates a single line/record in a genepred extended file."""
+    def __init__(self, rawstring):
+        ignorepos = rawstring.find(COMMENT_START)
+        s = rawstring[:ignorepos] if ignorepos >= 0 else rawstring.strip()
+        self.parts = s.split('\t')
+        if len(self.parts) != exonFrame_INDEX+1:
+            raise ValueError('Bad genepred record: had %d columns where %d are required' % (len(self.parts), ATTR_INDEX+1))
+        self.attrs={}
+        self.entrzID       = self.parts[entrzID_INDEX]
+        self.txName        = self.parts[txName_INDEX]
+        self.chromosome    = self.parts[chromosome_INDEX].lower()
+        self.strand        = self.parts[strand_INDEX]
+        self.txStart       = int(self.parts[txStart_INDEX])
+        self.txEnd         = int(self.parts[txEnd_INDEX])
+        self.CDSStart      = int(self.parts[CDSStart_INDEX])
+        self.CDSEnd        = int(self.parts[CDSEnd_INDEX])
+        self.txExonCount   = int(self.parts[txExonCount_INDEX])
+        self.txExonsStart  = map(int,self.parts[txExonsStart_INDEX].strip(',').split(','))
+        self.txExonsEnd    = map(int,self.parts[txExonsEnd_INDEX].strip(',').split(','))
+        self.Score         = int(self.parts[Score_INDEX])
+        self.GeneName      = self.parts[GeneName_INDEX]
+        self.CDSStartStat  = self.parts[CDSStartStat_INDEX]
+        self.CDSEndStat    = self.parts[CDSEndStat_INDEX]
+        self.exonFrame     = self.parts[exonFrame_INDEX].strip(',').split(',')
+
+    def inferUTR(self):
+
+    
 
