@@ -275,7 +275,23 @@ class transcript(BaseFeature):
             self.introns.append(intron)
        self.introns = sortArr(self.introns,0) 
        return True
-
+    
+    def inferRegionLoc(self,region):
+        '''Infer a chr:start:end format region's overlap status, Flag '1' mean exonic ,'-1' means intronic, '0' means maybe it's a intergenic region '''
+        querychr,querystart,queryend = region.split(":")
+        querystart,queryend = map(int,[querystart,queryend])
+        exonFlag=0
+        for i,(s,e) in enumerate(self.exons):
+            if querystart < s < queryend or (querystart>s and queryend<e) or querystart < e < queryend:
+                exonFlag = 1
+                break
+        if not exonFlag:
+            for i,(s,e) in enumerate(self.introns):
+                if querystart < s < queryend or (querystart>s and queryend<e) or querystart < e < queryend:
+                    exonFlag = -1
+                    break
+        return exonFlag
+    
     def upstream(self,distance=1000):
         '''Returns the upstream and downstream flanking region of a transcript record.'''
         uppos   = min(self.cds[0][0],self.exons[0][0])
