@@ -143,6 +143,7 @@ class transcript(BaseFeature):
         except KeyError,e:
             self.exonMap[exonTuple] = exon
         self.exons.append(list(exonTuple))
+        self.exons = sortArr(self.exons,0,1)
         return True
 
     def addCDS(self, cds):
@@ -157,6 +158,7 @@ class transcript(BaseFeature):
         except KeyError,e:
             self.cdsMap[cdsTuple] = cds
         self.cds.append(list(cdsTuple))
+        self.cds = sortArr(self.cds,0,1)
         return True
     
     def addUTR(self,utr):
