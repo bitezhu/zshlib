@@ -234,8 +234,9 @@ class transcript(BaseFeature):
                     self.tp_utr.append([tmps,tmpe])
                 elif tmps < CDSend < tmpe:
                     self.tp_utr.append([tmps,CDSend])
-        self.fp_utr = rmExtra(self.fp_utr)
-        self.tp_utr = rmExtra(self.tp_utr)
+        self.fp_utr = sortArr(rmExtra(self.fp_utr),0)
+        self.tp_utr = sortArr(rmExtra(self.tp_utr),0)
+        
         return True
     
 

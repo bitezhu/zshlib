@@ -376,7 +376,7 @@ class GenePredExt(object):
             self.stop_codon   = [self.CDSEnd,self.CDSEnd+3]
         else:
             self.start_codon  = [self.CDSEnd-3,self.CDSEnd]
-            self.stop_codon   = [self.CDSStart,self.CDSStart+3]
+            self.stop_codon   = [self.CDSStart+3,self.CDSStart]
         if self.CDSStartStat is 'incmpl':
             self.start_codon  = []
         if self.CDSEndStat is 'incmpl':
