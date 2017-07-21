@@ -34,6 +34,10 @@ class BaseFeature(object):
         return [self.start-2,self.start] if self.strand == '+' else [self.end,self.end+2]
 
     def donor(self):
+        '''
+        + strand example: CGTATTC|GT
+        - strand example: AC|GAATACG
+        '''
         return [self.end,self.end+2] if self.strand == '+' else [self.start-2,self.start]
 
     def contains(self, chromosome, pos, strand):
@@ -273,8 +277,8 @@ class transcript(BaseFeature):
         for i in xrange(1,len(intervals)) :
             intron = [exons[i-1].end(), exons[i].start()]
             self.introns.append(intron)
-       self.introns = sortArr(self.introns,0) 
-       return True
+        self.introns = sortArr(self.introns,0) 
+        return True
     
     def inferRegionLoc(self,region):
         '''Infer a chr:start:end format region's overlap status, Flag '1' mean exonic ,'-1' means intronic, '0' means maybe it's a intergenic region '''

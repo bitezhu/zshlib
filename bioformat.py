@@ -1,5 +1,5 @@
 from utils import ezOpen
-
+from utils import sortArr
 
 
 ################################################################################################################################
@@ -277,8 +277,7 @@ lstring exonFrames;     "Exon frame offsets {0,1,2}"
 
 COMMENT_START='#'
 
-class genePredExt(object):
-    def __init__(self,line):
+class GenePredExt(object):
     """Encapsulates a single line/record in a genepred extended file."""
     def __init__(self, rawstring):
         ignorepos = rawstring.find(COMMENT_START)
@@ -303,8 +302,86 @@ class genePredExt(object):
         self.CDSStartStat  = self.parts[CDSStartStat_INDEX]
         self.CDSEndStat    = self.parts[CDSEndStat_INDEX]
         self.exonFrame     = self.parts[exonFrame_INDEX].strip(',').split(',')
+        try:
+            assert len(self.txExonsStart) == len(self.txExonsEnd) == self.txExonCount
+        except AssertionError,e:
+            sys.stderr.write('inconsistent line, maybe the exon number in this record is wrong. \n')
+        self.exons         = []
+        self.cds           = []
+        self.utr           = []
+        self.fp_utr        = []
+        self.tp_utr        = []
+        self.start_codon   = []
+        self.stop_codon    = []
+
+    def getExons(self):
+        for i in range(self.txExonCount):
+            self.exons.append([self.txExonsStart[i],self.txExonsEnd[i]])
+    
+    def getDonors(self):
+        if self.strand == '+':
+            self.donors   = [[x,x+2] for x in self.txExonsEnd]
+        else:
+            self.accepors = [[x-2,x] for x in self.txExonsStart]
+        
+    def getAcceptors(self):
+        if self.strand == '+':
+            self.acceptors = [[x-2,x] for x in self.txExonsStart]
+        else:
+            self.acceptors = [[x,x+2] for x in self.txExonsEnd]
+
+    def getCDSs(self):
+        if self.CDSStartStat is 'unk' or self.CDSEndStat is 'unk':
+        # in this case, CDSStart is equal to CDSEnd , so we will not try to infer cds boundrary     
+            return
+        for exonStart,exonEnd in self.exons:
+            if exonEnd < self.CDSStart:
+                self.utr.append([exonStart,exonEnd])
+                continue
+            elif exonStart < self.CDSStart < exonEnd:
+                self.utr.append([exonStart,self.CDSStart])
+                self.cds.append([self.CDSStart,exonEnd])
+            elif self.CDSStart < exonEnd < self.CDSEnd:
+                self.cds.append([exonStart,exonEnd])
+            elif exonStart < self.CDSEnd < exonEnd:
+                self.utr.append([self.CDSEnd,exonEnd])
+                self.cds.append([exonStart,self.CDSEnd])
+            else:
+                self.utr.append([exonStart,exonEnd])
+                continue
+        self.cds = sortArr(self.cds,0)
+        return True
 
     def inferUTR(self):
+        if self.strand == "+":
+            for s,e in self.utr:
+                if s < self.CDSStart:
+                    self.fp_utr.append([s,e])
+                else:
+                    self.tp_utr.append([s,e])
+        else:
+            for s,e in self.utr:
+                if s < self.CDSStart:
+                    self.tp_utr.append([s,e])
+                else:
+                    self.tp_utr.append([s,e])
+        return True
 
+    def inferCodon(self):
+        if not self.cds : return
+        if self.strand == '+':
+            self.start_codon  = [self.CDSStart,self.CDSStart+3]
+            self.stop_codon   = [self.CDSEnd,self.CDSEnd+3]
+        else:
+            self.start_codon  = [self.CDSEnd-3,self.CDSEnd]
+            self.stop_codon   = [self.CDSEnd-3,self.CDSEnd]
+        if self.CDSStartStat is 'incmpl':
+            self.start_codon  = []
+        if self.CDSEndStat is 'incmpl':
+            self.stop_codon   = []
+        return True
+
+        
+        
     
 
