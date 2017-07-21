@@ -306,7 +306,7 @@ class GenePredExt(object):
             assert len(self.txExonsStart) == len(self.txExonsEnd) == self.txExonCount
         except AssertionError,e:
             sys.stderr.write('inconsistent line, maybe the exon number in this record is wrong. \n')
-        self.CDSEnd        = self.CDSEnd-3 if self.strand == "+" else self.CDSEnd  #  And CDS should not include STOP codon as it's not translated into an amino acid. I think this maybe a little difference with gtf format
+        self.CDSEnd        = self.CDSEnd-3 if self.strand == "+" else self.CDSEnd  #  And CDS should not include STOP codon as it's not translated into an amino acid. I think this maybe a little difference with gtf format. And importantly UTR does't include start_codon and stop_codon,either. So we introduce tmpStart in function getCDSs to correct this 
         self.CDSStart      = self.CDSStart if self.strand == "+" else self.CDSStart+3
         self.exons         = []
         self.cds           = []
@@ -341,12 +341,14 @@ class GenePredExt(object):
                 self.utr.append([exonStart,exonEnd])
                 continue
             elif exonStart < self.CDSStart < exonEnd:
-                self.utr.append([exonStart,self.CDSStart])
+                tmpStart = self.CDSStart if self.strand=='+' else self.CDSStart -3
+                self.utr.append([exonStart,tmpStart]) 
                 self.cds.append([self.CDSStart,exonEnd])
             elif self.CDSStart < exonEnd < self.CDSEnd:
                 self.cds.append([exonStart,exonEnd])
             elif exonStart < self.CDSEnd < exonEnd:
-                self.utr.append([self.CDSEnd,exonEnd])
+                tmpEnd = self.CDSEnd+3 if self.strand=='+' else self.CDSEnd
+                self.utr.append([tmpEnd,exonEnd])
                 self.cds.append([exonStart,self.CDSEnd])
             else:
                 self.utr.append([exonStart,exonEnd])
@@ -360,11 +362,11 @@ class GenePredExt(object):
                 if s < self.CDSStart:
                     self.fp_utr.append([s,e])
                 else:
-                    self.tp_utr.append([s+3,e])
+                    self.tp_utr.append([s,e])
         else:
             for s,e in self.utr:
                 if s < self.CDSStart:
-                    self.tp_utr.append([s+3,e])
+                    self.tp_utr.append([s,e])
                 else:
                     self.fp_utr.append([s,e])
         return True
@@ -376,7 +378,7 @@ class GenePredExt(object):
             self.stop_codon   = [self.CDSEnd,self.CDSEnd+3]
         else:
             self.start_codon  = [self.CDSEnd-3,self.CDSEnd]
-            self.stop_codon   = [self.CDSStart+3,self.CDSStart]
+            self.stop_codon   = [self.CDSStart-3,self.CDSStart]
         if self.CDSStartStat is 'incmpl':
             self.start_codon  = []
         if self.CDSEndStat is 'incmpl':
