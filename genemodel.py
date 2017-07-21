@@ -200,6 +200,8 @@ class transcript(BaseFeature):
                     self.tp_utr.append([utrs,utre])
                 else:
                     self.fp_utr.append([utrs,utre])
+        self.fp_utr=sortArr(self.fp_utr,0)
+        self.tp_utr=sortArr(self.tp_utr,0)
         return True
 
     
@@ -236,7 +238,6 @@ class transcript(BaseFeature):
                     self.tp_utr.append([tmps,CDSend])
         self.fp_utr = sortArr(rmExtra(self.fp_utr),0)
         self.tp_utr = sortArr(rmExtra(self.tp_utr),0)
-        
         return True
     
 
