@@ -293,7 +293,7 @@ class GenePredExt(object):
         self.txStart       = int(self.parts[txStart_INDEX])
         self.txEnd         = int(self.parts[txEnd_INDEX])
         self.CDSStart      = int(self.parts[CDSStart_INDEX])
-        self.CDSEnd        = int(self.parts[CDSEnd_INDEX])
+        self.CDSEnd        = int(self.parts[CDSEnd_INDEX]) 
         self.txExonCount   = int(self.parts[txExonCount_INDEX])
         self.txExonsStart  = map(int,self.parts[txExonsStart_INDEX].strip(',').split(','))
         self.txExonsEnd    = map(int,self.parts[txExonsEnd_INDEX].strip(',').split(','))
@@ -306,6 +306,8 @@ class GenePredExt(object):
             assert len(self.txExonsStart) == len(self.txExonsEnd) == self.txExonCount
         except AssertionError,e:
             sys.stderr.write('inconsistent line, maybe the exon number in this record is wrong. \n')
+        self.CDSEnd        = self.CDSEnd-3 if self.strand == "+" else self.CDSEnd  #  And CDS should not include STOP codon as it's not translated into an amino acid. I think this maybe a little difference with gtf format
+        self.CDSStart      = self.CDSStart if self.strand == "+" else self.CDSStart-3
         self.exons         = []
         self.cds           = []
         self.utr           = []
