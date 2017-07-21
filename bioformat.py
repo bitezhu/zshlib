@@ -307,7 +307,7 @@ class GenePredExt(object):
         except AssertionError,e:
             sys.stderr.write('inconsistent line, maybe the exon number in this record is wrong. \n')
         self.CDSEnd        = self.CDSEnd-3 if self.strand == "+" else self.CDSEnd  #  And CDS should not include STOP codon as it's not translated into an amino acid. I think this maybe a little difference with gtf format
-        self.CDSStart      = self.CDSStart if self.strand == "+" else self.CDSStart-3
+        self.CDSStart      = self.CDSStart if self.strand == "+" else self.CDSStart+3
         self.exons         = []
         self.cds           = []
         self.utr           = []
@@ -360,13 +360,13 @@ class GenePredExt(object):
                 if s < self.CDSStart:
                     self.fp_utr.append([s,e])
                 else:
-                    self.tp_utr.append([s,e])
+                    self.tp_utr.append([s+3,e])
         else:
             for s,e in self.utr:
                 if s < self.CDSStart:
-                    self.tp_utr.append([s,e])
+                    self.tp_utr.append([s+3,e])
                 else:
-                    self.tp_utr.append([s,e])
+                    self.fp_utr.append([s,e])
         return True
 
     def inferCodon(self):
