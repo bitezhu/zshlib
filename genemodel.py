@@ -21,7 +21,8 @@ class BaseFeature(object):
         self.strand      = strand
         self.parent      = None
         self.featureType = featureType
-        self.attrs  = attr
+        self.attrs       = attr
+        self.length      = self.end - self.start
 
     def acceptor(self):
         """
@@ -130,6 +131,8 @@ class transcript(BaseFeature):
         self.utrMap      = {}
         self.exonMap     = {}
         self.introns     = []
+        self.attrs       = attr
+        self.length      = self.end - self.start
 
     def addexon(self,exon):
         if exon.strand != self.strand:
@@ -325,24 +328,23 @@ class transcript(BaseFeature):
 class Gene(BaseFeature):
     def __init__(self, chromosome, start, end, strand, id, name=None,attr={}):
         BaseFeature.__init__(self, chromosome, start, end, strand, GENE_TYPE , attr)
-        self.id          = id
-        self.name        = name if name is not None else id
-        self.exons       = []
-        self.biotype     = attr['biotype']
-        self.trancripts  = {}
-        self.exons       = []
-        self.cds         = []
-        self.exonMap     = {}
-        self.cdsMap      = {}
-        self.string      = ''
-
+        self.id           = id
+        self.name         = name if name is not None else id
+        self.exons        = []
+        self.biotype      = attr['biotype']
+        self.trancripts   = {}
+        self.exons        = []
+        self.cds          = []
+        self.exonMap      = {}
+        self.cdsMap       = {}
         self.start_codons = {}
         self.end_codons   = {}
-        
+        self.children     = {} 
         # All other features associated with genes in an annotation file, such as:
         #    3'/5' UTRs, mRNA, miRNA, siRNA, tRNA, rRNA, ncRNA, snRNA, snoRNA
-        self.features = []
-    
+        self.features     = []
+        self.length       = self.end-self.start
+
     def addisoform(self,Newtranscript):
         Newtranscript.setParent(self.id)
         return self.trancripts.setdefault(Newtranscript.id, Newtranscript)

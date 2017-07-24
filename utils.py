@@ -195,7 +195,7 @@ class ProgressIndicator(object) :
             sys.stderr.write('.')
 
 class MatrixAnno(object):
-    def __init__(self,matrixfile,log=1,description=''):
+    def __init__(self,matrixfile,log=1,startidx=2,description=''):
         self.filehandle  = matrixfile
         self.metainfo    = ''
         self.tablename   = description
@@ -203,6 +203,7 @@ class MatrixAnno(object):
         self.data        = []
         self.features    = []
         self.log         = log
+        self.startidx    = startidx
 
     def getdata(self):
         for line in self.filehandle:
@@ -214,13 +215,13 @@ class MatrixAnno(object):
                 continue
             elif line.startswith('#'):
                 self.headerline = line.strip("\n").strip("#")
-                self.samplenames = line.strip("\n").strip("#").split("\t")[2:]
+                self.samplenames = line.strip("\n").strip("#").split("\t")[self.startidx:]
                 continue
             else:
                 pass
             linecontent = line.strip().split("\t")
             self.features.append(linecontent[0])
-            data=map(float,linecontent[2:])
+            data=map(float,linecontent[self.startidx:])
             self.data.append(data)
         self.data = np.asarray(self.data)
         if self.log:
