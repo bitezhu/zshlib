@@ -220,7 +220,7 @@ class MatrixAnno(object):
             else:
                 pass
             linecontent = line.strip().split("\t")
-            self.features.append(linecontent[0])
+            self.features.append(linecontent[1])
             data=map(float,linecontent[self.startidx:])
             self.data.append(data)
         self.data = np.asarray(self.data)

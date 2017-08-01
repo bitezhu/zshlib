@@ -272,6 +272,13 @@ class transcript(BaseFeature):
         self.translateRegion = [Start,End]
         return True
     
+    def transcriptRegion(self):
+        Start = End = 0
+        Start = self.exons[0][0]
+        End   = self.exons[-1][-1]
+        self.transcriptRegion = [Start,End]
+        return True
+
     def inferIntron(self):
         '''Returns a list of duples containing start/end positions of introns in this transcript.'''
         self.introns = []
@@ -304,22 +311,35 @@ class transcript(BaseFeature):
         return exonFlag
     
     def upstream(self,distance=1000):
-        '''Returns the upstream and downstream flanking region of a transcript record.'''
-        uppos   = min(self.cds[0][0],self.exons[0][0])
-        downpos = max(self.cds[-1][-1],self.exons[-1][-1])
+        '''Returns the upstream and downstream flanking region of a transcript record. Could used for chip-seq annotation'''
+        uppos,downpos = self.transcriptRegion
         if self.strand == '+':
-            return [uppos+distance,uppos]
+            return [uppos-distance,uppos]
         else:
             return [downpos,downpos+distance]
 
     def downstream(self,distance=1000):
-        uppos   = min(self.cds[0][0],self.exons[0][0])
-        downpos = max(self.cds[-1][-1],self.exons[-1][-1])
+        uppos,downpos = self.transcriptRegion
         if self.strand == '+':
             return [downpos,downpos+distance]
         else:
-            return [uppos+distance,uppos]
+            return [uppos-distance,uppos]
 
+    def inferTSS(self,distance=1000):
+        '''Infer the transcription start site of a particular transcript.'''
+        uppos,downpos = self.transcriptRegion
+        if self.strand == '+':
+            return [uppos-distance,uppos+distance]
+        else:
+            return [downpos+distance,downpos+distance]
+
+    def inferTTS(self,distance=1000):
+        '''Infer the transcription termination site of a particular transcript.'''
+        uppos,downpos = self.transcriptRegion
+        if self.strand == '+':
+            return [downpos+distance,downpos+distance]
+        else:
+            return [uppos-distance,uppos+distance]
 
     def __str__(self):
         return "%s :%s:%d-%d (len=%d, strand=%s), %d exons/cds, translate from %d to %d" % (self.id, self.chromosome, self.start, self.end, self.end-self.start, self.strand, len(self.cds), self.translateRegion[0],self.translateRegion[1])

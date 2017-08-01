@@ -4,14 +4,31 @@ import sys
 import utils
 from utils import MatrixAnno
 
+num_clusters = 10
+from sklearn.cluster import KMeans
+km = KMeans(n_clusters=num_clusters, init='random', n_init=1,
+        verbose=1, random_state=3)
+
 fh=file(sys.argv[1],'r')
-dataobj=MatrixAnno(fh)
+dataobj=MatrixAnno(fh,log=1)
 dataobj.getdata()
-print dataobj.samplenames
+#print dataobj.samplenames
+cmap='coolwarm'
 
 fh.close()
 
-matplot.boxplot(dataobj.data,dataobj.samplenames,rotation=90)
+#km.fit(dataobj.data.T)
+#print dir(km)
+
+data=np.arange(150).reshape(50,3)
+features=['genegenegenegene%d'%x for x in range(50)]
+samplenames=['s%d'%x for x in range(3)]
+
+#print data
+#dist=matplot.clusterHC(dataobj.data,dataobj.samplenames)
+
+matplot.clusterheatmap(data,samplenames,features,)
+#matplot.boxplot(dataobj.data,dataobj.samplenames,rotation=90)
 #print utils.configMap(sys.argv[1])
 '''
 print utils.commaFormat(123456789)
