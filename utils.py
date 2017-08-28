@@ -88,6 +88,27 @@ def getAttribute(key, default, **args) :
     otherwise returns default value."""
     return default if key not in args else args[key]
 
+def get_object_attrs(obj):
+    try:
+        return obj.__dict__
+    except AttributeError:
+        return {attr: getattr(obj, attr) for attr in obj.__slots__}
+
+def run_object_attrs(obj):
+    attrs = get_object_attrs(obj)
+    for k,v in sorted(attrs.items()):
+        if k.startswith('_'):continue
+        if hasattr(obj,k):
+            print "ATTR:%s"%(k)
+            try:
+                print getattr(obj,k)()
+            except TypeError,e:
+                print getattr(obj,k)
+                pass
+        else:
+            pass
+    return 0
+
 def getEnvironmentValue(name, default=None) :
     """Returns the value for the given environment variable name, if found;
     otherwise returns default value."""
