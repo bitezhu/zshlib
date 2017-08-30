@@ -1,6 +1,6 @@
 from utils import ezOpen
 from utils import sortArr
-
+import numpy as np
 
 ################################################################################################################################
 
@@ -394,3 +394,37 @@ class GenePredExt(object):
         self.introns=sortArr(self.introns,0)
         return True
 
+
+class PSSM(object):
+    """Encapsulates a POSITION-SPECIFIC SCORING MATRICES regardless of amino acid or nucltide."""
+    def __init__(self, pssm):
+        self.pssm = np.array(pssm,dtype=np.float64)
+        self.Hc = []
+        self.H = 0  # entropy of the PSSM position in information theory. The higher the greater the uncertainty
+        self.Rc = [] # Rc is used as the total height of the logo column
+
+
+    def calculate_uncertainty(self):
+        '''
+        this method is based on formula 11 of chapter4 in Mount's book. Return the average amount of uncertainty (Hc) in bits per symbol for column c of the given PSSM  
+        '''
+        r,c = self.pssm.shape
+        MaxHc = 0
+        if r == 4:
+            MaxHc = np.log2(4)
+        elif r == 20:
+            MaxHc = np.log2(20)
+        else:
+            pass
+        if np.sum(self.pssm[:,0]) > 1:
+            self.pssm /= np.sum(self.pssm,0)
+        for j in range(c):
+            fracs = self.pssm[:,j]
+            hc = 0
+            for i in range(r):
+                hc += fracs[i]*np.log2(fracs[i])
+            self.Hc.append(0-hc)
+        self.Hc = np.array(self.Hc)
+        self.Rc = MaxHc - self.Hc
+        self.H = np.sum(self.Hc)
+        return 0

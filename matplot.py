@@ -205,7 +205,8 @@ def bargroup(matrix,samplenames,ticklabels,xlabel="x",ylabel="y",title="bargroup
     try:
         assert c == len(samplenames)
     except AssertionError,e:
-        sys.stderr.write("wrong data dimension!!!\n")
+        sys.stderr.write("wrong data dimension!!!\nExiting now.\n")
+        sys.exit(0)
     if len(colors) != c:
         colors,markers = styleNum(c)
     fig, ax = plt.subplots()
@@ -250,11 +251,11 @@ def bargroup(matrix,samplenames,ticklabels,xlabel="x",ylabel="y",title="bargroup
     return 0
 
 
-
 def clearaxis(ax):
     ''' remove xaxis and yaxis of the ax '''
     ax.margins(0.1)
     ax.axis('off')
+
 
 def clearHalfaxis(ax):
     '''Only show ticks on the left and bottom spines. '''
@@ -271,7 +272,8 @@ def boxplot(matrix,labels,xlabel="x",ylabel='y',title='boxplot',picname="test",r
     try:
         assert c == len(labels)
     except AssertionError,e:
-        sys.stderr.write("wrong data dimension!!!\n")
+        sys.stderr.write("wrong data dimension!!!\nExiting now.\n")
+        sys.exit(0)
     fig, ax = plt.subplots()
     #mat=np.asarray(matrix).T
     boxes=ax.boxplot(mat,sym='k+',bootstrap=5000,notch=notch,patch_artist=patch_artist)
@@ -289,6 +291,7 @@ def boxplot(matrix,labels,xlabel="x",ylabel='y',title='boxplot',picname="test",r
     plt.clf()
     plt.close()
     return 0
+
 
 def densityplot(plotarrs,labels,xlabel="x",ylabel='y',title='density plot',picname="test",fill=0):
     plotarrs = np.asarray(plotarrs)
@@ -320,6 +323,7 @@ def densityplot(plotarrs,labels,xlabel="x",ylabel='y',title='density plot',picna
     plt.close()
     return 0
 
+
 def clusterHC(data,method='average', metric='euclidean',picname='test'):
     fig, ax = plt.subplots()
     #data=data.T
@@ -333,12 +337,12 @@ def clusterHC(data,method='average', metric='euclidean',picname='test'):
     plt.close()
     return Z
 
+
 def clusterheatmap(mat,samplenames,featurenames,labelsize=14,plotxlabel=1,plotylabel=1,cbarlabel="Expression",cut_tree = 3,cmap='coolwarm',picname='cluster_heatmap'):
     # mat is r * c matrix
     r,c=mat.shape
     figw=12 if c<30 else c/3
     figh=10 if r<40 else r/4.0 
-    
     fig, ax = plt.subplots(figsize=(figw,figh))
     divider = axes_grid1.make_axes_locatable(ax)
     sys.stderr.write('plot size is %d*%d\n'%(figw,figh))
@@ -435,7 +439,6 @@ def corrheatplot(mat,samplenames,labelsize=10,picname='corrheat'):
     ax.set_yticklabels(samplenames,rotation=rotationx,fontdict=fontdict)
     ax.yaxis.set_ticks_position('right')
     ax.tick_params(axis=u'both', which=u'both',length=0)
-
     cax=fig.add_axes([0.04,0.70,0.01,0.25],frameon=False,)
     plt.colorbar(im,cax=cax,)
     cax.yaxis.set_ticks_position('right')
@@ -448,6 +451,9 @@ def corrheatplot(mat,samplenames,labelsize=10,picname='corrheat'):
 
 
 def scatterplot(xarr,yarr,data,samplenames,colors=['C0','C1','C2'],marker=0,xlabel="x",ylabel='y',title='scatter plot',cm=0,picname="scatter",alpha=0.8,figsize=(8,6)):
+    '''
+    xarr, xarr, data are all M*N dimensional numpy array, the column is sample while the row is observation
+    '''
     fig, ax = plt.subplots(figsize=figsize)
     c = len(xarr)
     try:
@@ -458,17 +464,20 @@ def scatterplot(xarr,yarr,data,samplenames,colors=['C0','C1','C2'],marker=0,xlab
         colors,markers = styleNum(c)
     if not marker:
         markers = ['o',]*c
-    xlimmin = min([min(i) for i in xarr])
-    xlimmax = max([max(i) for i in xarr])
-    ylimmin = min([min(i) for i in yarr])
-    ylimmax = max([max(i) for i in yarr])
+    xlimmin = np.min(xarr)
+    xlimmax = np.max(xarr)
+    ylimmin = np.min(yarr)
+    ylimmax = np.max(yarr)
     cmap='RdYlBu_r'
     #cmap=myfavcmap
-    vmax = np.ceil(max([max(i) for i in data]))
-    vmin = np.floor(min([min(i) for i in data]))
-                                                 #data = np.asarray(data,dtype=np.float64) in case of a non-matrix data
-    vmax = max([vmax,abs(vmin)]) # choose larger of vmin and vmax
+    vmax = np.ceil(np.max(data))
+    vmin = np.floor(np.min(data))
+    #data = np.asarray(data,dtype=np.float64) in case of a non-matrix data
+    vmax = np.max([vmax,np.abs(vmin)]) # choose larger of vmin and vmax
     my_norm = mpl.colors.Normalize(vmin, vmax)
+    #xarr = xarr.T.tolist()
+    #yarr = yarr.T.tolist()
+    #data = data.T.tolist()
     for i in range(c):
         if cm:
             #ax.scatter(xarr[i], yarr[i],c=(0.2,0.4,0.6,0.8), s=data[i],marker=markers[i], alpha=0.8,label=samplenames[i], norm=my_norm)
@@ -489,8 +498,9 @@ def scatterplot(xarr,yarr,data,samplenames,colors=['C0','C1','C2'],marker=0,xlab
             ax.scatter(xarr[i], yarr[i], s=data[i], c=colors[i], marker=markers[i], alpha=alpha, label=samplenames[i])
             ax.legend(loc='best')
     ax.set_title(title)
-    ax.set_xlim(xlimmin*0.85,xlimmax*1.1)
-    ax.set_ylim(ylimmin*0.85,ylimmax*1.1)
+    ax.set_adjustable('datalim')
+    #ax.set_xlim(xlimmin*0.85,xlimmax*1.1)
+    #ax.set_ylim(ylimmin*0.85,ylimmax*1.1)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     #ax.legend(loc='best')
@@ -501,7 +511,7 @@ def scatterplot(xarr,yarr,data,samplenames,colors=['C0','C1','C2'],marker=0,xlab
     return 0 
 
 
-def scatter3Dplot(xarr,yarr,zarr,samplenames,colors=['C0','C1','C2'],marker='o',xlabel="x",ylabel='y',zlabel='z',title='scatter plot',picname="scatter3d",alpha=0.8):
+def scatter3Dplot(xarr,yarr,zarr,samplenames,colors=['C0','C1','C2'],marker='o',xlabel="x",ylabel='y',zlabel='z',title='scatter plot',picname="scatter3d",alpha=0.8,sz=10):
     from mpl_toolkits.mplot3d import Axes3D
     fig = plt.figure()
     ax  = fig.add_subplot(111, projection='3d')
@@ -517,8 +527,7 @@ def scatter3Dplot(xarr,yarr,zarr,samplenames,colors=['C0','C1','C2'],marker='o',
     ylim = np.max(np.fabs(np.asarray(yarr)))
     zlim = np.max(np.fabs(np.asarray(zarr)))
     for i in range(c):
-        ax.scatter(xarr[i], yarr[i], zarr[i], c=colors[i], marker=marker, alpha=0.8,label=samplenames[i])
-    ax.legend(loc='best')
+        ax.scatter(xarr[i], yarr[i], zarr[i], c=colors[i], marker=marker, alpha=0.8,label=samplenames[i],s=sz)
     ax.set_title(title)
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -532,6 +541,7 @@ def scatter3Dplot(xarr,yarr,zarr,samplenames,colors=['C0','C1','C2'],marker='o',
     ax.zaxis.set_major_formatter(majorFormatter)
     ax.tick_params(axis=u'both', which=u'both',length=20,color='red',pad=1)
     ax.spines['right'].set_color('none')
+    plt.legend(loc='best')
     plt.savefig("%s.png"%picname,format='png',dpi=300)
     plt.savefig("%s.svg"%picname,format='svg',dpi=300)
     plt.clf()
@@ -603,7 +613,6 @@ def scatterHistplot(xarr,yarr,colors='C1',marker='o',xlabel="x",ylabel='y',title
     histy = plt.subplot2grid((4,4),(1,3),rowspan=3)
     histx.xaxis.set_major_formatter(nullfmt)
     histy.yaxis.set_major_formatter(nullfmt)
-
     histx.hist(xarr, bins=bins, color=colors)
     histy.hist(yarr, bins=bins, color=colors, orientation='horizontal')
     axscatter.set_xlim((-xlim,xlim))
@@ -746,6 +755,61 @@ def venn4plot(listA,listB,listC,listD,labels=('A','B','C','D'),labelfz=18,numfz=
     plt.close()
     return 0
 
+
+def lineplot(mat,samplenames,rotation=0,labelsize=10,picname='lineplot',xticklabels=None,markersize=5,xlabel="x",ylabel='y',title='line plot'):
+    mat = np.asarray(mat)
+    r,c = mat.shape
+    try:
+        assert c == len(samplenames)
+    except AssertionError,e:
+        sys.stderr.write("inconsitent data dimension with length of laebls!!!\n")
+    if not xticklabels:
+        xticklabels = map(str,np.arange(r))
+    fig, ax = plt.subplots(figsize=(8,6))
+    xpos = np.arange(r)
+    for i in range(c):
+        ax.plot(xpos,mat[:,i],'-o',label=samplenames[i],linewidth=1,markersize=markersize)
+    labelstr_length = np.max(map(len,xticklabels))
+    if labelstr_length > 12:
+        rotation = 45
+        labelsize = 8
+    ax.set_xticks(xpos)
+    ax.set_xticklabels(xticklabels,fontsize=labelsize,rotation=rotation,ha='right')
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig("%s.png"%picname,format='png',dpi=300)
+    plt.savefig("%s.svg"%picname,format='svg',dpi=300)
+    plt.clf()
+    plt.close()
+    return 0
+    
+
+def pcaplot(U,E,samplenames,colors=['C0','C1','C2'],picname="scatter3d",title='scatter plot',ms=10):
+    '''
+    parameters `colors` is mandatory, if there is data like biological replicates samples, samplenames and colors could be setted like ['Ar1','Ar2','Ar3','Br1','Br2','Br3'] and ['C0','C0','C0','C1','C1','C1']. But if there is no biological replicates, feel free to set up param `colors` or not. 
+    '''
+    xarr = U[:,0]
+    yarr = U[:,1]
+    zarr = U[:,2]
+    data = np.ones((xarr.shape))*ms
+    if len(E) == 3:
+        scatter3Dplot(xarr,yarr,zarr,samplenames,colors=['C0','C1','C2'],marker='o',xlabel="PC1",ylabel='PC2',zlabel='PC3',title=title,picname=picname,alpha=0.8,sz=ms)
+    else:
+        scatterplot(xarr,yarr,data,samplenames,colors=['C0','C1','C2'],marker=0,xlabel="PC1",ylabel='PC2',title=title,cm=0,picname="scatter",alpha=0.8)
+    return 0
+
+
+def coverageplot(Chr_Region,depth_arr,picname='coverage',title='coverage'):
+    fig, ax = plt.subplots(figsize=(8,6))
+    ax.plot(Chr_Region,depth_arr)
+    plt.savefig("%s.png"%picname,format='png',dpi=300)
+    plt.savefig("%s.svg"%picname,format='svg',dpi=300)
+    plt.clf()
+    plt.close()
+    return 0
 
 def plot_chromosome():
     pass

@@ -1,6 +1,8 @@
 import pysam
 import sys
 import os
+import numpy as np
+
 
 def Tabix(tabfile,chrpos=0,start=3,end=4):
     if os.path.exists(tabfile+".gz.tbi"):
@@ -49,14 +51,19 @@ def mappingstat(inbam,):
 
 
 def singlebaseCov(samfile,region,truncate=True):
-    chr,start,end=region.split("-")
+    Chr,start,end=region.split("-")
     start=int(start)
     end=int(end)
+    Chr_Region = np.arange(start,end,1)
+    depth_arr = np.zeros(Chr_Region.shape).tolist()
     #samfile=pysam.AlignmentFile(bamfile,"rb")
     basecount=[0,]*100000
-    for pileupcolumn in samfile.pileup(chr,start,end,truncate=truncate):
+    for pileupcolumn in samfile.pileup(Chr,start,end,truncate=truncate):
 	basecount[pileupcolumn.n]+=1
+        depth_arr.append(pileupcolumn.n)
     #samfile.close()
-    return basecount
+    return basecount,Chr_Region,depth_arr
+
+
 
 		
