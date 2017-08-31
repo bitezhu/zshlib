@@ -801,10 +801,15 @@ def pcaplot(U,E,samplenames,colors=['C0','C1','C2'],picname="scatter3d",title='s
         scatterplot(xarr,yarr,data,samplenames,colors=['C0','C1','C2'],marker=0,xlabel="PC1",ylabel='PC2',title=title,cm=0,picname="scatter",alpha=0.8)
     return 0
 
+def formatxlabels(xcoord):
+    return "%.2fkb"%(xcoord/float(1000))
 
 def coverageplot(Chr_Region,depth_arr,picname='coverage',title='coverage'):
-    fig, ax = plt.subplots(figsize=(8,6))
+    fig, ax = plt.subplots(figsize=(12,10))
     ax.plot(Chr_Region,depth_arr)
+    xticks = np.linspace(Chr_Region[0],Chr_Region[-1],6)
+    xticklabels = map(formatxlabels,xticks)
+    ax.set_xticklabels(xticklabels)
     plt.savefig("%s.png"%picname,format='png',dpi=300)
     plt.savefig("%s.svg"%picname,format='svg',dpi=300)
     plt.clf()
