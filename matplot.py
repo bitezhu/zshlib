@@ -806,9 +806,10 @@ def formatxlabels(xcoord):
 
 def coverageplot(Chr_Region,depth_arr,picname='coverage',title='coverage'):
     fig, ax = plt.subplots(figsize=(12,10))
-    ax.plot(Chr_Region,depth_arr)
+    ax.fill_between(Chr_Region,depth_arr,alpha=0.5)
     xticks = np.linspace(Chr_Region[0],Chr_Region[-1],6)
     xticklabels = map(formatxlabels,xticks)
+    ax.set_xticks(xticks)
     ax.set_xticklabels(xticklabels)
     plt.savefig("%s.png"%picname,format='png',dpi=300)
     plt.savefig("%s.svg"%picname,format='svg',dpi=300)

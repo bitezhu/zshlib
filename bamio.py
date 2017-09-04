@@ -54,14 +54,20 @@ def singlebaseCov(samfile,region,truncate=True):
     Chr,start,end=region.split("-")
     start=int(start)
     end=int(end)
-    Chr_Region = [] 
+    Chr_Region = range(start,end,1)
     depth_arr = []
+    posDict = {}
+    #If a site was not covered by any reads, function pileup will not return any information about this site. That's why I use an dictionary here. But there should be a more elegant way.
     #samfile=pysam.AlignmentFile(bamfile,"rb")
     basecount=[0,]*100000
     for pileupcolumn in samfile.pileup(Chr,start,end,truncate=truncate):
 	basecount[pileupcolumn.n]+=1
-        depth_arr.append(pileupcolumn.n)
-        Chr_Region.append(pileupcolumn.pos)
+        posDict[pileupcolumn.pos] = pileupcolumn.n
+    for pos in Chr_Region:
+        if pos in posDict:
+            depth_arr.append(posDict[pos])
+        else:
+            depth_arr.append(0)
     #samfile.close()
     return basecount,Chr_Region,depth_arr
 
