@@ -229,7 +229,8 @@ class transcript(BaseFeature):
                 elif tmps < CDSend < tmpe:
                     self.tp_utr.append([CDSend,tmpe])
                 else:
-                    raise Exception("ERROR: could not determine this exon [%d,%d] is a UTR or not" % (tmps,tmpe,))
+                    pass
+                    #raise Exception("ERROR: could not determine this exon [%d,%d] is a UTR or not" % (tmps,tmpe,))
             else:
                 if tmps > CDSstart:
                     self.fp_utr.append([tmps,tmpe])
@@ -239,6 +240,9 @@ class transcript(BaseFeature):
                     self.tp_utr.append([tmps,tmpe])
                 elif tmps < CDSend < tmpe:
                     self.tp_utr.append([tmps,CDSend])
+                else:
+                    pass
+                    #raise Exception("ERROR: could not determine this exon [%d,%d] is a UTR or not" % (tmps,tmpe,))
         self.fp_utr = sortArr(rmExtra(self.fp_utr),0)
         self.tp_utr = sortArr(rmExtra(self.tp_utr),0)
         return True
